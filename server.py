@@ -1,4 +1,6 @@
 from flask import Flask
+from PIL import Image
+import numpy as np
 import sqlite3
 
 app = Flask(__name__)
@@ -32,3 +34,32 @@ def plot_pixel(user, x_pos, y_pos, r, g, b):
     conn.commit()
     conn.close()
 
+
+def render_image():
+    """
+    Renders a Pillow Image object from pixels plotted in db
+    :return: Image object with pixel values as stored in db, white if not stored
+    """
+    # Get image size
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    max_x = c.execute('''SELECT x FROM pixels ORDER BY x DESC;''').fetchone()
+    max_y = c.execute('''SELECT y FROM pixels ORDER BY y DESC;''').fetchone()
+
+    if max_x is None or max_y is None:
+        size = (0, 0)
+        return Image.new('RGB', size)
+    else:
+        size = (max_x[0] + 1, max_y[0] + 1)
+
+    # Get pixels
+    pixels = c.execute('''SELECT x, y, r, g, b FROM pixels;''').fetchall()
+    size_x, size_y = size
+    pixel_array = np.array([[(0, 0, 0)]*size_y]*size_x, np.uint8)
+    for x, y, r, g, b in pixels:
+        pixel_array[x][y] = (r, g, b)
+
+    # Render
+    conn.commit()
+    conn.close()
+    return Image.fromarray(pixel_array)
