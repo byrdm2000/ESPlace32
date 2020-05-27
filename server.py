@@ -1,7 +1,9 @@
-from flask import Flask
+from flask import Flask, request
 from PIL import Image
 import numpy as np
 import sqlite3
+import base64
+from io import BytesIO
 
 app = Flask(__name__)
 db = "place.db"
@@ -59,7 +61,29 @@ def render_image():
     for x, y, r, g, b in pixels:
         pixel_array[x][y] = (r, g, b)
 
-    # Render
+    # Close and render
     conn.commit()
     conn.close()
     return Image.fromarray(pixel_array)
+
+@app.route('/', methods = ['GET', 'POST'])
+def request_handler():
+    if request.method == 'POST':
+        form = request.get('form')
+        user = form.get('user')
+        pixel_x = form.get('x')
+        pixel_y = form.get('y')
+        pixel_r = form.get('r')
+        pixel_g = form.get('g')
+        pixel_b = form.get('b')
+        if user is None or pixel_x is None or pixel_y is None or pixel_r is None or pixel_g is None or pixel_b is None:
+            return "Missing params"
+        else:
+            plot_pixel(user, int(pixel_x), int(pixel_y), int(pixel_r), int(pixel_g), int(pixel_b))
+            return "Plotted pixel successfully"
+    elif request.method == 'GET':
+        buffered_image = BytesIO()
+        im = render_image()
+        im.save(buffered, format='PNG')
+        im_b64 = base64.b64encode(buffered_image.getvalue())
+        return '<img src="data:image/png;base64, ' + im_b64 + '/>'
