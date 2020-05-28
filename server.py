@@ -84,6 +84,9 @@ def request_handler():
     elif request.method == 'GET':
         buffered_image = BytesIO()
         im = render_image()
-        im.save(buffered, format='PNG')
+        im.save(buffered_image, format='PNG')
         im_b64 = base64.b64encode(buffered_image.getvalue())
-        return '<img src="data:image/png;base64, ' + im_b64 + '/>'
+        print(im_b64)
+        # TODO: fix this
+        return '<img src="data:image/png;base64,' + str(im_b64) + '"/>'
+
