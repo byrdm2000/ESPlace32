@@ -4,6 +4,7 @@ import numpy as np
 import sqlite3
 import base64
 from io import BytesIO
+from config import Config
 
 app = Flask(__name__)
 db = "place.db"
@@ -66,10 +67,11 @@ def render_image():
     conn.close()
     return Image.fromarray(pixel_array)
 
-@app.route('/', methods = ['GET', 'POST'])
+
+@app.route('/', methods=['GET', 'POST'])
 def request_handler():
     if request.method == 'POST':
-        form = request.get('form')
+        form = request.form
         user = form.get('user')
         pixel_x = form.get('x')
         pixel_y = form.get('y')
@@ -82,11 +84,15 @@ def request_handler():
             plot_pixel(user, int(pixel_x), int(pixel_y), int(pixel_r), int(pixel_g), int(pixel_b))
             return "Plotted pixel successfully"
     elif request.method == 'GET':
+        resize_factor = int(request.values.get("scale", 1))
         buffered_image = BytesIO()
-        im = render_image()
+        im_unresized = render_image()
+        if resize_factor > 1:
+            new_size = (resize_factor * x for x in im_unresized.size)
+            im = im_unresized.resize(new_size)
+        else:
+            im = im_unresized
         im.save(buffered_image, format='PNG')
-        im_b64 = base64.b64encode(buffered_image.getvalue())
-        print(im_b64)
-        # TODO: fix this
+        im_b64 = base64.b64encode(buffered_image.getvalue()).decode('ascii')
         return '<img src="data:image/png;base64,' + str(im_b64) + '"/>'
 
